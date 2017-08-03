@@ -80,11 +80,11 @@ pipeline {
                 }
             }
         }
-		stage('Deploy to Internal Snapshot Repo') {
+	stage('Deploy to Internal Snapshot Repo') {
             steps {
-				sh "mvn deploy -Dmaven.repo.local=.repo -DskipTests=true -DskipITs=true -DaltDeploymentRepository=vce.snapshot::default::http://repo.vmo.lab:8080/artifactory/libs-snapshot-local"
-			}
-        }	    
+		sh "mvn deploy -Dmaven.repo.local=.repo -DskipTests=true -DskipITs=true -DaltDeploymentRepository=vce.snapshot::default::http://repo.vmo.lab:8080/artifactory/libs-snapshot-local"
+            }
+        }    
     }
     post {
         always {
