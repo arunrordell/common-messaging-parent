@@ -30,8 +30,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 doCheckout()
-	    }
-	}
+	    	}
+		}
         stage('Compile') {
             steps {
                 sh "mvn clean install -Dmaven.repo.local=.repo -DskipTests=true -DskipITs=true -s ~/.m2/settings-default.xml"
@@ -42,9 +42,29 @@ pipeline {
                 sh "mvn verify -Dmaven.repo.local=.repo"
             }
         }
-        stage('Record Test Results') {
+        stage('Parallel Stages') {
             steps {
-                junit '**/target/*-reports/*.xml'
+                parallel(
+				"Record Test Results": {
+                    junit '**/target/*-reports/*.xml'
+                },
+                "NexB Scan": {
+                    sh 'rm -rf .repo'
+                    doNexbScanning()
+                },
+                "SonarQube Analysis": {
+                    doSonarAnalysis()
+                },
+                "Third Party Audit": {
+                    doThirdPartyAudit()
+                },
+                "PasswordScan": {
+                    doPwScan()
+                },
+                "Github Release": {
+                    githubRelease()
+                }
+                )
             }
         }
        stage('Deploy') {
@@ -60,37 +80,11 @@ pipeline {
                 }
             }
         }
-	stage('Deploy to Internal Snapshot Repo') {
+		stage('Deploy to Internal Snapshot Repo') {
             steps {
-		    sh "mvn deploy -Dmaven.repo.local=.repo -DskipTests=true -DskipITs=true -DaltDeploymentRepository=vce.snapshot::default::http://repo.vmo.lab:8080/artifactory/libs-snapshot-local"
-            }
+				sh "mvn deploy -Dmaven.repo.local=.repo -DskipTests=true -DskipITs=true -DaltDeploymentRepository=vce.snapshot::default::http://repo.vmo.lab:8080/artifactory/libs-snapshot-local"
+			}
         }	    
-        stage('SonarQube Analysis') {
-            steps {
-                doSonarAnalysis()    
-            }
-        }
-        stage('Third Party Audit') {
-            steps {
-                doThirdPartyAudit()
-            }
-        }
-        stage('Github Release') {
-            steps {
-                githubRelease()
-            }
-        }
-        stage('NexB Scan') {
-            steps {
-                sh 'rm -rf .repo'
-                doNexbScanning()
-           }
-        }
-        stage('PasswordScan') {
-            steps {
-                doPwScan()
-            }
-        }
     }
     post {
         always {
